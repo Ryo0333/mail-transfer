@@ -18,6 +18,8 @@ def mail_transfer():
     NOTION_DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
     NOTION_URL = "https://api.notion.com/v1/pages"
 
+    FROM_EMAIL = os.getenv("FROM_EMAIL")
+
     HEADERS = {
         "Authorization": f"Bearer {NOTION_API_KEY}",
         "Content-Type": "application/json",
@@ -28,7 +30,7 @@ def mail_transfer():
     gmail.login(GMAIL_USERNAME, GMAIL_APP_PASSWORD)
     gmail.select("inbox")
 
-    head, data = gmail.search(None, "ALL")
+    _, data = gmail.search(None, f"FROM {FROM_EMAIL}")
 
     for num in data[0].split():
         print(f"Processing mail: {num}")
@@ -40,8 +42,6 @@ def mail_transfer():
         )
         msg_subject = email.header.decode_header(msg.get("Subject"))[0][0]
         subject = str(msg_subject.decode(msg_encoding))
-        if not subject.startswith == "週刊Life is beautiful":
-            continue
         try:
             body = msg.get_payload(decode=True).decode(msg_encoding)
         except Exception as e:
@@ -62,11 +62,10 @@ def mail_transfer():
             ],
         }
 
-        response = requests.post(
+        _ = requests.post(
             NOTION_URL, headers=HEADERS, data=json.dumps(notion_data)
         )
-        print(response.status_code)
-
+        
     gmail.close()
     gmail.logout()
 
