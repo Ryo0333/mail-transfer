@@ -62,10 +62,8 @@ def mail_transfer():
             ],
         }
 
-        _ = requests.post(
-            NOTION_URL, headers=HEADERS, data=json.dumps(notion_data)
-        )
-        
+        _ = requests.post(NOTION_URL, headers=HEADERS, data=json.dumps(notion_data))
+
     gmail.close()
     gmail.logout()
 
