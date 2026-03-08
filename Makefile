@@ -1,3 +1,3 @@
 .PHONY: lint
 lint:
-	poetry run ruff check .
+	uv run ruff check .

@@ -7,29 +7,36 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+IMAP_SERVER = "imap.gmail.com"
+GMAIL_USERNAME = os.getenv("GMAIL_USERNAME")
+GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
+
+NOTION_API_KEY = os.getenv("NOTION_API_KEY")
+NOTION_DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
+NOTION_URL = httpx.URL("https://api.notion.com/v1/pages")
+
+FROM_EMAIL = os.getenv("FROM_EMAIL")
+
+HEADERS = httpx.Headers(
+    {
+        "Authorization": f"Bearer {NOTION_API_KEY}",
+        "Content-Type": "application/json",
+        "Notion-Version": "2022-06-28",
+    }
+)
+
 
 def mail_transfer() -> None:
-    IMAP_SERVER = "imap.gmail.com"
-    GMAIL_USERNAME = os.getenv("GMAIL_USERNAME")
-    GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
-
-    NOTION_API_KEY = os.getenv("NOTION_API_KEY")
-    NOTION_DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
-    NOTION_URL = httpx.URL("https://api.notion.com/v1/pages")
-
-    FROM_EMAIL = os.getenv("FROM_EMAIL")
-
-    HEADERS = httpx.Headers(
-        {
-            "Authorization": f"Bearer {NOTION_API_KEY}",
-            "Content-Type": "application/json",
-            "Notion-Version": "2022-06-28",
-        }
-    )
-
     gmail = imaplib.IMAP4_SSL(IMAP_SERVER)
+    if GMAIL_USERNAME is None:
+        raise ValueError("GMAIL_USERNAME is not set")
+    if GMAIL_APP_PASSWORD is None:
+        raise ValueError("GMAIL_APP_PASSWORD is not set")
     gmail.login(GMAIL_USERNAME, GMAIL_APP_PASSWORD)
     gmail.select("inbox")
+
+    if FROM_EMAIL is None:
+        raise ValueError("FROM_EMAIL is not set")
 
     _, data = gmail.search(None, f"FROM {FROM_EMAIL}")
 
