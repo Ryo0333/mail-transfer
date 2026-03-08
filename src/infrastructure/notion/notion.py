@@ -2,7 +2,10 @@ import httpx
 from httpx import URL, Headers
 
 from src.domain.models.mail import Mail
+from src.logger import get_logger
 from src.settings import settings
+
+logger = get_logger(__name__)
 
 NOTION_PAGES_URL = URL("https://api.notion.com/v1/pages")
 NOTION_VERSION = "2025-09-03"
@@ -20,7 +23,7 @@ HEADERS = Headers(
 class NotionClient:
     def post_mail(self, mail: Mail) -> None:
         if self._title_exists(mail.subject):
-            print(f"Skipping: page with title '{mail.subject}' already exists in Notion DB")
+            logger.info("Skipping: page with title '%s' already exists in Notion DB", mail.subject)
             return
         notion_data = {
             "parent": {"type": "data_source_id", "data_source_id": settings.notion_data_source_id},
@@ -33,8 +36,7 @@ class NotionClient:
             res = client.post(NOTION_PAGES_URL, json=notion_data)
         if res.is_success:
             return
-        print(f"Notion API error: {res.status_code}")
-        print(f"Response body: {res.text}")
+        logger.error("Notion API error: %s\nResponse body: %s", res.status_code, res.text)
         res.raise_for_status()
 
     def _title_exists(self, title: str) -> bool:
@@ -48,8 +50,7 @@ class NotionClient:
         with httpx.Client(headers=HEADERS, timeout=20.0) as client:
             res = client.post(query_url, json=query_data)
         if not res.is_success:
-            print(f"Notion query error: {res.status_code}")
-            print(f"Response body: {res.text}")
+            logger.error("Notion query error: %s\nResponse body: %s", res.status_code, res.text)
             res.raise_for_status()
         return len(res.json().get("results", [])) > 0
 

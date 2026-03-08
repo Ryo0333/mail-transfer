@@ -3,7 +3,10 @@ import imaplib
 from email.header import decode_header
 
 from src.domain.models.mail import Mail
+from src.logger import get_logger
 from src.settings import settings
+
+logger = get_logger(__name__)
 
 IMAP_SERVER = "imap.gmail.com"
 
@@ -14,20 +17,6 @@ class GmailClient:
         self.client.login(settings.gmail_username, settings.gmail_app_password)
         self.client.select("inbox")
 
-    def fetch_all(self) -> list[Mail]:
-        _, data = self.client.search(None, f"FROM {settings.from_email}")
-        # _, data = self._client.search(None, "ALL")
-        email_ids: list[bytes] = data[0].split()
-
-        return [self._fetch_one(email_id.decode()) for email_id in email_ids]
-
-    def _fetch_one(self, email_id: str) -> Mail:
-        _, msg_data = self.client.fetch(email_id, "(RFC822)")
-        for response_part in msg_data or []:
-            if isinstance(response_part, tuple):
-                return self._parse_email(response_part[1])
-        raise ValueError(f"No email found for {email_id}")
-
     def __enter__(self) -> "GmailClient":
         return self
 
@@ -35,13 +24,28 @@ class GmailClient:
         self.client.close()
         self.client.logout()
 
+    def fetch_all(self) -> list[Mail]:
+        _, data = self.client.search(None, f"FROM {settings.from_email}")
+        # _, data = self._client.search(None, "ALL")
+        email_ids: list[bytes] = data[0].split()
+
+        return [self._fetch_by_id(email_id.decode()) for email_id in email_ids]
+
+    def _fetch_by_id(self, email_id: str) -> Mail:
+        _, msg_data = self.client.fetch(email_id, "(RFC822)")
+        for response_part in msg_data:
+            if response_part is None:
+                continue
+            if isinstance(response_part, tuple):
+                return self._parse_email(response_part[1])
+        raise ValueError(f"No email found for {email_id}")
+
     def _parse_email(self, raw_bytes: bytes) -> Mail:
         msg = email.message_from_bytes(raw_bytes)
 
         subject, encoding = decode_header(msg["Subject"])[0]
         if isinstance(subject, bytes):
-            encoding = encoding if encoding else "utf-8"
-            subject = subject.decode(encoding, errors="ignore")
+            subject = subject.decode(encoding if encoding else "utf-8")
 
         sender = msg.get("From")
         if sender is None:
@@ -58,12 +62,12 @@ class GmailClient:
                         body = payload.decode() if isinstance(payload, bytes) else ""
                         break
                     except Exception as e:
-                        print(f"本文のデコードに失敗しました: {e}")
+                        logger.warning("本文のデコードに失敗しました: %s", e)
         else:
             try:
                 payload = msg.get_payload(decode=True)
                 body = payload.decode() if isinstance(payload, bytes) else ""
             except Exception as e:
-                print(f"本文のデコードに失敗しました: {e}")
+                logger.warning("本文のデコードに失敗しました: %s", e)
 
         return Mail(subject=subject, sender=sender, body=body)
