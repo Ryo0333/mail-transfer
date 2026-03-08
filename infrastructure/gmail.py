@@ -15,15 +15,14 @@ class GmailClient:
         self._client.select("inbox")
 
     def fetch_all(self) -> list[Mail]:
-        # _, data = self._client.search(None, f"FROM {settings.from_email}")
-        _, data = self._client.search(None, "ALL")
+        _, data = self._client.search(None, f"FROM {settings.from_email}")
+        # _, data = self._client.search(None, "ALL")
         email_ids = data[0].split()
         if not email_ids:
             return []
         return [self._fetch_one(email_id.decode()) for email_id in email_ids]
 
     def _fetch_one(self, email_id: str) -> Mail:
-        print(f"Processing mail: {email_id}")
         _, msg_data = self._client.fetch(email_id, "(RFC822)")
         for response_part in msg_data or []:
             if isinstance(response_part, tuple):
