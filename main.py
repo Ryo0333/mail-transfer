@@ -1,27 +1,18 @@
 import email
 import imaplib
-import os
 from email.header import decode_header
 
 import httpx
-from dotenv import load_dotenv
 
-load_dotenv()
+from settings import settings
 
 IMAP_SERVER = "imap.gmail.com"
-GMAIL_USERNAME = os.getenv("GMAIL_USERNAME")
-GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
-
-NOTION_API_KEY = os.getenv("NOTION_API_KEY")
-NOTION_DATA_SOURCE_ID = os.getenv("NOTION_DATA_SOURCE_ID")
 NOTION_URL = httpx.URL("https://api.notion.com/v1/pages")
 NOTION_VERSION = "2025-09-03"
 
-FROM_EMAIL = os.getenv("FROM_EMAIL")
-
 HEADERS = httpx.Headers(
     {
-        "Authorization": f"Bearer {NOTION_API_KEY}",
+        "Authorization": f"Bearer {settings.notion_api_key}",
         "Content-Type": "application/json",
         "Notion-Version": NOTION_VERSION,
     }
@@ -82,7 +73,7 @@ def _split_into_paragraph_blocks(text: str) -> list[dict]:
 
 def _post_to_notion(subject: str, body: str) -> None:
     notion_data = {
-        "parent": {"type": "data_source_id", "data_source_id": NOTION_DATA_SOURCE_ID},
+        "parent": {"type": "data_source_id", "data_source_id": settings.notion_data_source_id},
         "properties": {
             "Name": {"title": [{"text": {"content": subject}}]},
         },
@@ -97,17 +88,10 @@ def _post_to_notion(subject: str, body: str) -> None:
 
 def mail_transfer() -> None:
     gmail = imaplib.IMAP4_SSL(IMAP_SERVER)
-    if GMAIL_USERNAME is None:
-        raise ValueError("GMAIL_USERNAME is not set")
-    if GMAIL_APP_PASSWORD is None:
-        raise ValueError("GMAIL_APP_PASSWORD is not set")
-    gmail.login(GMAIL_USERNAME, GMAIL_APP_PASSWORD)
+    gmail.login(settings.gmail_username, settings.gmail_app_password)
     gmail.select("inbox")
 
-    if FROM_EMAIL is None:
-        raise ValueError("FROM_EMAIL is not set")
-
-    # _, data = gmail.search(None, f"FROM {FROM_EMAIL}")
+    # _, data = gmail.search(None, f"FROM {settings.from_email}")
     _, data = gmail.search(None, "ALL")
     email_ids = data[0].split()
 
