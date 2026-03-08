@@ -17,6 +17,6 @@ class MailTransferService:
 
         for mail in mails:
             print(f"【件名】: {mail.subject}")
-            print(f"【送信元】: {mail.from_}")
+            print(f"【送信元】: {mail.sender}")
             print(f"【本文】:\n{mail.body}")
             self.notion.post_mail(mail)

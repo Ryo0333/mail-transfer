@@ -3,27 +3,26 @@ import imaplib
 from email.header import decode_header
 
 from src.domain.models.mail import Mail
-from src.core.settings import settings
+from src.settings import settings
 
 IMAP_SERVER = "imap.gmail.com"
 
 
 class GmailClient:
     def __init__(self) -> None:
-        self._client = imaplib.IMAP4_SSL(IMAP_SERVER)
-        self._client.login(settings.gmail_username, settings.gmail_app_password)
-        self._client.select("inbox")
+        self.client = imaplib.IMAP4_SSL(IMAP_SERVER)
+        self.client.login(settings.gmail_username, settings.gmail_app_password)
+        self.client.select("inbox")
 
     def fetch_all(self) -> list[Mail]:
-        _, data = self._client.search(None, f"FROM {settings.from_email}")
+        _, data = self.client.search(None, f"FROM {settings.from_email}")
         # _, data = self._client.search(None, "ALL")
-        email_ids = data[0].split()
-        if not email_ids:
-            return []
+        email_ids: list[bytes] = data[0].split()
+
         return [self._fetch_one(email_id.decode()) for email_id in email_ids]
 
     def _fetch_one(self, email_id: str) -> Mail:
-        _, msg_data = self._client.fetch(email_id, "(RFC822)")
+        _, msg_data = self.client.fetch(email_id, "(RFC822)")
         for response_part in msg_data or []:
             if isinstance(response_part, tuple):
                 return self._parse_email(response_part[1])
@@ -33,8 +32,8 @@ class GmailClient:
         return self
 
     def __exit__(self, *_: object) -> None:
-        self._client.close()
-        self._client.logout()
+        self.client.close()
+        self.client.logout()
 
     def _parse_email(self, raw_bytes: bytes) -> Mail:
         msg = email.message_from_bytes(raw_bytes)
@@ -44,8 +43,8 @@ class GmailClient:
             encoding = encoding if encoding else "utf-8"
             subject = subject.decode(encoding, errors="ignore")
 
-        from_ = msg.get("From")
-        if from_ is None:
+        sender = msg.get("From")
+        if sender is None:
             raise ValueError("From is not set")
 
         body = ""
@@ -67,4 +66,4 @@ class GmailClient:
             except Exception as e:
                 print(f"本文のデコードに失敗しました: {e}")
 
-        return Mail(subject=subject, from_=from_, body=body)
+        return Mail(subject=subject, sender=sender, body=body)

@@ -3,5 +3,5 @@ from pydantic import BaseModel, StrictStr
 
 class Mail(BaseModel):
     subject: StrictStr
-    from_: StrictStr
+    sender: StrictStr
     body: StrictStr
