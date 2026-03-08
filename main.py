@@ -13,9 +13,9 @@ GMAIL_USERNAME = os.getenv("GMAIL_USERNAME")
 GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
 
 NOTION_API_KEY = os.getenv("NOTION_API_KEY")
-# NOTION_DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
 NOTION_DATA_SOURCE_ID = os.getenv("NOTION_DATA_SOURCE_ID")
 NOTION_URL = httpx.URL("https://api.notion.com/v1/pages")
+NOTION_VERSION = "2025-09-03"
 
 FROM_EMAIL = os.getenv("FROM_EMAIL")
 
@@ -23,7 +23,7 @@ HEADERS = httpx.Headers(
     {
         "Authorization": f"Bearer {NOTION_API_KEY}",
         "Content-Type": "application/json",
-        "Notion-Version": "2025-09-03",
+        "Notion-Version": NOTION_VERSION,
     }
 )
 
@@ -64,6 +64,8 @@ NOTION_RICH_TEXT_LIMIT = 2000
 
 
 def _split_into_paragraph_blocks(text: str) -> list[dict]:
+    if not text:
+        return []
     return [
         {
             "object": "block",
@@ -86,7 +88,7 @@ def _post_to_notion(subject: str, body: str) -> None:
         },
         "children": _split_into_paragraph_blocks(body),
     }
-    res = httpx.post(NOTION_URL, headers=HEADERS, json=notion_data)
+    res = httpx.post(NOTION_URL, headers=HEADERS, json=notion_data, timeout=20.0)
     if not res.is_success:
         print(f"Notion API error: {res.status_code}")
         print(f"Response body: {res.text}")
