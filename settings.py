@@ -11,4 +11,4 @@ class Settings(BaseSettings):
     from_email: str
 
 
-settings = Settings()
+settings = Settings()  # type: ignore

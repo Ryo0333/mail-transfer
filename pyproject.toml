@@ -19,20 +19,17 @@ dev = [
 
 [tool.ruff]
 exclude = [
-  ".git",
-  ".mypy_cache",
-  ".venv*",
-  "ruff_cache",
+  '^\.git/',
+  '^\.mypy_cache/',
+  '^\.venv',
+  '^\.ruff_cache/',
 ]
 line-length = 119
 
 [tool.mypy]
 exclude = [
-  ".git",
-  ".mypy_cache",
-  ".venv*",
-  "ruff_cache",
-]
-plugins = [
-  "pydantic.mypy"
+  '^\.git/',
+  '^\.mypy_cache/',
+  '^\.venv',
+  '^\.ruff_cache/',
 ]
