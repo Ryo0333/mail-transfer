@@ -1,14 +1,15 @@
+from pydantic import StrictStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
-    gmail_username: str
-    gmail_app_password: str
-    notion_api_key: str
-    notion_data_source_id: str
-    from_email: str
+    gmail_username: StrictStr
+    gmail_app_password: StrictStr
+    notion_api_key: StrictStr
+    notion_data_source_id: StrictStr
+    from_email: StrictStr
 
 
 settings = Settings()  # type: ignore
