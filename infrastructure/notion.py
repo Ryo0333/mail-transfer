@@ -1,13 +1,14 @@
 import httpx
+from httpx import URL, Headers
 
 from domain.mail import Mail
 from settings import settings
 
-NOTION_URL = httpx.URL("https://api.notion.com/v1/pages")
+NOTION_URL = URL("https://api.notion.com/v1/pages")
 NOTION_VERSION = "2025-09-03"
 NOTION_RICH_TEXT_LIMIT = 2000
 
-HEADERS = httpx.Headers(
+HEADERS = Headers(
     {
         "Authorization": f"Bearer {settings.notion_api_key}",
         "Content-Type": "application/json",
@@ -25,10 +26,12 @@ class NotionClient:
             },
             "children": self._split_into_paragraph_blocks(mail.body),
         }
-        res = httpx.post(NOTION_URL, headers=HEADERS, json=notion_data, timeout=20.0)
-        if not res.is_success:
-            print(f"Notion API error: {res.status_code}")
-            print(f"Response body: {res.text}")
+        with httpx.Client(headers=HEADERS) as client:
+            res = client.post(NOTION_URL, json=notion_data)
+        if res.is_success:
+            return
+        print(f"Notion API error: {res.status_code}")
+        print(f"Response body: {res.text}")
         res.raise_for_status()
 
     def _split_into_paragraph_blocks(self, text: str) -> list[dict]:
