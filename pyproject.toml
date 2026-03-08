@@ -1,17 +1,12 @@
-[tool.poetry]
+[project]
 name = "mail-transfer"
 version = "0.1.0"
 description = ""
-authors = ["Ryo0333 <windsguitar@icloud.com>"]
 readme = "README.md"
-
-[tool.poetry.dependencies]
-python = "^3.11"
-python-dotenv = "^1.0.1"
-requests = "^2.32.3"
-ruff = "^0.8.6"
-
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires-python = ">=3.10.13"
+dependencies = [
+    "httpx>=0.28.1",
+    "pyrefly>=0.55.0",
+    "python-dotenv>=1.2.2",
+    "ruff>=0.15.5",
+]
