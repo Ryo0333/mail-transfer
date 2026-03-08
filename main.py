@@ -13,7 +13,8 @@ GMAIL_USERNAME = os.getenv("GMAIL_USERNAME")
 GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
 
 NOTION_API_KEY = os.getenv("NOTION_API_KEY")
-NOTION_DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
+# NOTION_DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
+NOTION_DATA_SOURCE_ID = os.getenv("NOTION_DATA_SOURCE_ID")
 NOTION_URL = httpx.URL("https://api.notion.com/v1/pages")
 
 FROM_EMAIL = os.getenv("FROM_EMAIL")
@@ -22,7 +23,7 @@ HEADERS = httpx.Headers(
     {
         "Authorization": f"Bearer {NOTION_API_KEY}",
         "Content-Type": "application/json",
-        "Notion-Version": "2022-06-28",
+        "Notion-Version": "2025-09-03",
     }
 )
 
@@ -59,21 +60,36 @@ def _parse_email(raw_bytes: bytes) -> tuple[str, str, str]:
     return subject, from_, body
 
 
+NOTION_RICH_TEXT_LIMIT = 2000
+
+
+def _split_into_paragraph_blocks(text: str) -> list[dict]:
+    return [
+        {
+            "object": "block",
+            "type": "paragraph",
+            "paragraph": {
+                "rich_text": [
+                    {"text": {"content": text[i : i + NOTION_RICH_TEXT_LIMIT]}}
+                ]
+            },
+        }
+        for i in range(0, max(len(text), 1), NOTION_RICH_TEXT_LIMIT)
+    ]
+
+
 def _post_to_notion(subject: str, body: str) -> None:
     notion_data = {
-        "parent": {"database_id": NOTION_DATABASE_ID},
+        "parent": {"type": "data_source_id", "data_source_id": NOTION_DATA_SOURCE_ID},
         "properties": {
             "Name": {"title": [{"text": {"content": subject}}]},
         },
-        "children": [
-            {
-                "object": "block",
-                "type": "paragraph",
-                "paragraph": {"rich_text": [{"text": {"content": body}}]},
-            }
-        ],
+        "children": _split_into_paragraph_blocks(body),
     }
     res = httpx.post(NOTION_URL, headers=HEADERS, json=notion_data)
+    if not res.is_success:
+        print(f"Notion API error: {res.status_code}")
+        print(f"Response body: {res.text}")
     res.raise_for_status()
 
 
@@ -89,7 +105,8 @@ def mail_transfer() -> None:
     if FROM_EMAIL is None:
         raise ValueError("FROM_EMAIL is not set")
 
-    _, data = gmail.search(None, f"FROM {FROM_EMAIL}")
+    # _, data = gmail.search(None, f"FROM {FROM_EMAIL}")
+    _, data = gmail.search(None, "ALL")
     email_ids = data[0].split()
 
     if not email_ids:
