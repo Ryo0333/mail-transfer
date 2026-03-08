@@ -9,4 +9,4 @@ format:
 
 .PHONY: run
 run:
-	dotenvx run -- python main.py uv run python main.py
+	dotenvx run -- python main.py

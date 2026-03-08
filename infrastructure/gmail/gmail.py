@@ -2,7 +2,7 @@ import email
 import imaplib
 from email.header import decode_header
 
-from domain.mail import Mail
+from domain.models.mail import Mail
 from settings import settings
 
 IMAP_SERVER = "imap.gmail.com"
