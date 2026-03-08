@@ -63,5 +63,5 @@ class NotionClient:
                 "type": "paragraph",
                 "paragraph": {"rich_text": [{"text": {"content": text[i : i + NOTION_RICH_TEXT_LIMIT]}}]},
             }
-            for i in range(0, max(len(text), 1), NOTION_RICH_TEXT_LIMIT)
+            for i in range(0, len(text), NOTION_RICH_TEXT_LIMIT)
         ]

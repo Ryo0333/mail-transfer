@@ -25,7 +25,7 @@ class GmailClient:
         self.client.logout()
 
     def fetch_all(self) -> list[Mail]:
-        _, data = self.client.search(None, f"FROM {settings.from_email}")
+        _, data = self.client.search(None, f'FROM "{settings.from_email}"')
         # _, data = self._client.search(None, "ALL")
         email_ids: list[bytes] = data[0].split()
 
