@@ -1,6 +1,6 @@
 from injector import inject
 
-from domain.ports import MailFetcher, MailPoster
+from src.domain.ports import MailFetcher, MailPoster
 
 
 class MailTransferService:

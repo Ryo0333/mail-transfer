@@ -1,7 +1,7 @@
 from injector import Module, provider
 
-from domain.ports import MailPoster
-from infrastructure.notion.notion import NotionClient
+from src.domain.ports import MailPoster
+from src.infrastructure.notion.notion import NotionClient
 
 
 class NotionProvider(Module):

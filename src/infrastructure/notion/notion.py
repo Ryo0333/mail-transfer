@@ -1,8 +1,8 @@
 import httpx
 from httpx import URL, Headers
 
-from domain.models.mail import Mail
-from settings import settings
+from src.domain.models.mail import Mail
+from src.core.settings import settings
 
 NOTION_PAGES_URL = URL("https://api.notion.com/v1/pages")
 NOTION_VERSION = "2025-09-03"

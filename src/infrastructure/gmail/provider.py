@@ -1,7 +1,7 @@
 from injector import Module, provider
 
-from domain.ports import MailFetcher
-from infrastructure.gmail.gmail import GmailClient
+from src.domain.ports import MailFetcher
+from src.infrastructure.gmail.gmail import GmailClient
 
 
 class GmailProvider(Module):

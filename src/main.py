@@ -1,9 +1,9 @@
 from injector import Injector
 
-from application.mail_transfer_service import MailTransferService
-from infrastructure.gmail.gmail import GmailClient
-from infrastructure.gmail.provider import GmailProvider
-from infrastructure.notion.provider import NotionProvider
+from src.application.mail_transfer_service import MailTransferService
+from src.infrastructure.gmail.gmail import GmailClient
+from src.infrastructure.gmail.provider import GmailProvider
+from src.infrastructure.notion.provider import NotionProvider
 
 
 def main() -> None:

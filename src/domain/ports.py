@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from domain.models.mail import Mail
+from src.domain.models.mail import Mail
 
 
 class MailFetcher(Protocol):
