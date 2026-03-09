@@ -36,8 +36,8 @@ src/
 - Python 3.10.13+
 - [uv](https://docs.astral.sh/uv/)
 - [dotenvx](https://dotenvx.com/)
-- Gmail アカウント（IMAP 有効 + アプリパスワード発行済み）
-- Notion インテグレーション（API キー + データベース ID）
+- Gmail アカウント（アプリパスワード発行済み）
+- Notion アカウント（API キー + データソース ID）
 
 ### インストール
 
