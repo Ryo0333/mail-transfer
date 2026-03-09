@@ -2,7 +2,7 @@ name: Mail Transfer
 
 on:
   schedule:
-    - cron: '0 0 * * 1'  # 毎週月曜 9:00 JST (UTC 0:00)
+    - cron: '0 17 * * 1'  # 毎週火曜 2:00 JST (UTC 17:00 月曜)
   workflow_dispatch:
 
 jobs:
@@ -15,12 +15,16 @@ jobs:
       NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
       NOTION_DATA_SOURCE_ID: ${{ secrets.NOTION_DATA_SOURCE_ID }}
       FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+      DOTENV_PRIVATE_KEY: ${{ secrets.DOTENV_PRIVATE_KEY }}
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install dotenvx
+        run: curl -fsS https://dotenvx.com/install.sh | sh
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
 
       - name: Run mail transfer
-        run: uv run python main.py
+        run: dotenvx run -f .env -- uv run python main.py
