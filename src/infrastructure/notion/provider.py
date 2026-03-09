@@ -5,6 +5,10 @@ from src.infrastructure.notion.notion import NotionClient
 
 
 class NotionProvider(Module):
+    def __init__(self, api_key: str, data_source_id: str) -> None:
+        self.api_key = api_key
+        self.data_source_id = data_source_id
+
     @provider
     def mail_exporter(self) -> MailExporter:
-        return NotionClient()
+        return NotionClient(self.api_key, self.data_source_id)

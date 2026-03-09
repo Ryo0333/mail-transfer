@@ -4,7 +4,6 @@ from email.header import decode_header
 
 from src.domain.models.mail import Mail
 from src.logger import get_logger
-from src.settings import settings
 
 logger = get_logger(__name__)
 
@@ -12,9 +11,10 @@ IMAP_SERVER = "imap.gmail.com"
 
 
 class GmailClient:
-    def __init__(self) -> None:
+    def __init__(self, username: str, app_password: str, from_email: str) -> None:
+        self.from_email = from_email
         self.client = imaplib.IMAP4_SSL(IMAP_SERVER)
-        self.client.login(settings.gmail_username, settings.gmail_app_password)
+        self.client.login(username, app_password)
         self.client.select("inbox")
 
     def __enter__(self) -> "GmailClient":
@@ -25,7 +25,7 @@ class GmailClient:
         self.client.logout()
 
     def fetch_all(self) -> list[Mail]:
-        _, data = self.client.search(None, f'FROM "{settings.from_email}"')
+        _, data = self.client.search(None, f'FROM "{self.from_email}"')
         # _, data = self._client.search(None, "ALL")
         email_ids: list[bytes] = data[0].split()
 
