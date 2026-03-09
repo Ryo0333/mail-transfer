@@ -21,7 +21,7 @@ HEADERS = Headers(
 
 
 class NotionClient:
-    def post_mail(self, mail: Mail) -> None:
+    def export(self, mail: Mail) -> None:
         if self._title_exists(mail.subject):
             logger.info("Skipping: page with title '%s' already exists in Notion DB", mail.subject)
             return

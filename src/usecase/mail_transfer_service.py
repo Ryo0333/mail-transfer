@@ -1,6 +1,6 @@
 from injector import inject
 
-from src.domain.ports import MailFetcher, MailPoster
+from src.domain.interfaces import MailExporter, MailFetcher
 from src.logger import get_logger
 
 logger = get_logger(__name__)
@@ -8,9 +8,9 @@ logger = get_logger(__name__)
 
 class MailTransferService:
     @inject
-    def __init__(self, fetcher: MailFetcher, poster: MailPoster) -> None:
+    def __init__(self, fetcher: MailFetcher, exporter: MailExporter) -> None:
         self.fetcher = fetcher
-        self.poster = poster
+        self.exporter = exporter
 
     def execute(self) -> None:
         mails = self.fetcher.fetch_all()
@@ -22,4 +22,4 @@ class MailTransferService:
             logger.info("【件名】: %s", mail.subject)
             logger.info("【送信元】: %s", mail.sender)
             logger.debug("【本文】:\n%s", mail.body)
-            self.poster.post_mail(mail)
+            self.exporter.export(mail)
