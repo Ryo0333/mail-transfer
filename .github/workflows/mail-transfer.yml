@@ -10,11 +10,6 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      GMAIL_USERNAME: ${{ secrets.GMAIL_USERNAME }}
-      GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-      NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
-      NOTION_DATA_SOURCE_ID: ${{ secrets.NOTION_DATA_SOURCE_ID }}
-      FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
       DOTENV_PRIVATE_KEY: ${{ secrets.DOTENV_PRIVATE_KEY }}
 
     steps:
