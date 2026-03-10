@@ -127,6 +127,52 @@ class TestParseEmail:
         # Assert
         assert result.body == "日本語の本文"
 
+    def test_html_only_body_is_stripped(self, gmail_client: GmailClient) -> None:
+        # Arrange
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = "HTML only"
+        msg["From"] = "sender@example.com"
+        msg.attach(MIMEText("<p>Hello <b>World</b></p>", "html"))
+
+        # Act
+        result = gmail_client._parse_email(msg.as_bytes())
+
+        # Assert
+        assert "Hello" in result.body
+        assert "World" in result.body
+        assert "<" not in result.body
+        assert ">" not in result.body
+
+    def test_html_single_part_body_is_stripped(self, gmail_client: GmailClient) -> None:
+        # Arrange
+        msg = email.message.EmailMessage()
+        msg["Subject"] = "Single HTML"
+        msg["From"] = "sender@example.com"
+        msg.set_content("<p>Hello <b>World</b></p>", subtype="html")
+
+        # Act
+        result = gmail_client._parse_email(msg.as_bytes())
+
+        # Assert
+        assert "Hello" in result.body
+        assert "World" in result.body
+        assert "<" not in result.body
+        assert ">" not in result.body
+
+    def test_plain_text_takes_priority_over_html(self, gmail_client: GmailClient) -> None:
+        # Arrange
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = "Priority test"
+        msg["From"] = "sender@example.com"
+        msg.attach(MIMEText("Plain text", "plain"))
+        msg.attach(MIMEText("<p>HTML text</p>", "html"))
+
+        # Act
+        result = gmail_client._parse_email(msg.as_bytes())
+
+        # Assert
+        assert result.body == "Plain text"
+
 
 class TestFetchAll:
     def test_filters_by_subject_prefix(self) -> None:

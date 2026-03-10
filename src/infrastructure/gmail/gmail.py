@@ -2,6 +2,8 @@ import email
 import imaplib
 from email.header import decode_header
 
+from bs4 import BeautifulSoup
+
 from src.domain.models.mail import Mail
 from src.logger import get_logger
 
@@ -56,25 +58,41 @@ class GmailClient:
 
         body = ""
         if msg.is_multipart():
+            html_fallback: str | None = None
             for part in msg.walk():
                 content_type = part.get_content_type()
                 content_disposition = str(part.get("Content-Disposition"))
-                if content_type == "text/plain" and "attachment" not in content_disposition:
-                    try:
-                        payload = part.get_payload(decode=True)
-                        if isinstance(payload, bytes):
-                            charset = part.get_content_charset() or "iso-2022-jp"
-                            body = payload.decode(charset)
+                if "attachment" in content_disposition:
+                    continue
+                try:
+                    payload = part.get_payload(decode=True)
+                    if not isinstance(payload, bytes):
+                        continue
+                    charset = part.get_content_charset() or "iso-2022-jp"
+                    text = payload.decode(charset)
+                    if content_type == "text/plain":
+                        body = text
                         break
-                    except Exception as e:
-                        logger.warning("本文のデコードに失敗しました: %s", e)
+                    if content_type == "text/html" and html_fallback is None:
+                        html_fallback = text
+                except Exception as e:
+                    logger.warning("本文のデコードに失敗しました: %s", e)
+            if not body and html_fallback is not None:
+                body = self._strip_html(html_fallback)
         else:
             try:
                 payload = msg.get_payload(decode=True)
                 if isinstance(payload, bytes):
                     charset = msg.get_content_charset() or "iso-2022-jp"
-                    body = payload.decode(charset)
+                    text = payload.decode(charset)
+                    if msg.get_content_type() == "text/html":
+                        body = self._strip_html(text)
+                    else:
+                        body = text
             except Exception as e:
                 logger.warning("本文のデコードに失敗しました: %s", e)
 
         return Mail(subject=subject, sender=sender, body=body)
+
+    def _strip_html(self, html: str) -> str:
+        return BeautifulSoup(html, "html.parser").get_text(separator="\n")
