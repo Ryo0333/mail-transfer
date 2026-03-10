@@ -1,3 +1,7 @@
+.PHONY: test
+test:
+	uv run pytest
+
 .PHONY: lint
 lint:
 	uv run ruff check .

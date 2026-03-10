@@ -9,6 +9,7 @@ dependencies = [
     "injector>=0.24.0",
     "pydantic>=2.12.5",
     "pydantic-settings>=2.13.1",
+    "pytest>=9.0.2",
 ]
 
 [dependency-groups]
