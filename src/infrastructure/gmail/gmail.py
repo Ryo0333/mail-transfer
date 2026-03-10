@@ -11,8 +11,9 @@ IMAP_SERVER = "imap.gmail.com"
 
 
 class GmailClient:
-    def __init__(self, username: str, app_password: str, from_email: str) -> None:
+    def __init__(self, username: str, app_password: str, from_email: str, subject_prefix: str | None = None) -> None:
         self.from_email = from_email
+        self.subject_prefix = subject_prefix
         self.client = imaplib.IMAP4_SSL(IMAP_SERVER)
         self.client.login(username, app_password)
         self.client.select("inbox")
@@ -26,10 +27,12 @@ class GmailClient:
 
     def fetch_all(self) -> list[Mail]:
         _, data = self.client.search(None, f'FROM "{self.from_email}"')
-        # _, data = self._client.search(None, "ALL")
         email_ids: list[bytes] = data[0].split()
 
-        return [self._fetch_by_id(email_id.decode()) for email_id in email_ids]
+        mails = [self._fetch_by_id(email_id.decode()) for email_id in email_ids]
+        if self.subject_prefix is not None:
+            mails = [mail for mail in mails if mail.subject.startswith(self.subject_prefix)]
+        return mails
 
     def _fetch_by_id(self, email_id: str) -> Mail:
         _, msg_data = self.client.fetch(email_id, "(RFC822)")

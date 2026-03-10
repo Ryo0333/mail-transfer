@@ -12,6 +12,7 @@ def main() -> None:
         username=settings.gmail_username,
         app_password=settings.gmail_app_password,
         from_email=settings.from_email,
+        subject_prefix=settings.subject_prefix,
     )
     notion_provider = NotionProvider(
         api_key=settings.notion_api_key,

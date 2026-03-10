@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     notion_api_key: StrictStr
     notion_data_source_id: StrictStr
     from_email: StrictStr
+    subject_prefix: StrictStr | None = None
 
 
 settings = Settings()  # type: ignore
