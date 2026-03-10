@@ -10,6 +10,8 @@ NOTION_PAGES_URL = URL("https://api.notion.com/v1/pages")
 NOTION_VERSION = "2025-09-03"
 NOTION_RICH_TEXT_LIMIT = 2000
 
+TITLE_PROPERTY_NAME = "Name"
+
 
 class NotionClient:
     def __init__(self, api_key: str, data_source_id: str) -> None:
@@ -29,27 +31,27 @@ class NotionClient:
         notion_data = {
             "parent": {"type": "data_source_id", "data_source_id": self.data_source_id},
             "properties": {
-                "Name": {"title": [{"text": {"content": mail.subject}}]},
+                TITLE_PROPERTY_NAME: {"title": [{"text": {"content": mail.subject}}]},
             },
             "children": self._split_into_paragraph_blocks(mail.body),
         }
         with httpx.Client(headers=self.headers, timeout=20.0) as client:
-            res = client.post(NOTION_PAGES_URL, json=notion_data)
+            res = client.post(NOTION_PAGES_URL, json=notion_data, timeout=20.0)
         if res.is_success:
             return
         logger.error("Notion API error: %s\nResponse body: %s", res.status_code, res.text)
         res.raise_for_status()
 
     def _title_exists(self, title: str) -> bool:
-        query_url = URL(f"https://api.notion.com/v1/data_sources/{self.data_source_id}/query")
-        query_data = {
+        url = URL(f"https://api.notion.com/v1/data_sources/{self.data_source_id}/query")
+        data = {
             "filter": {
-                "property": "Name",
+                "property": TITLE_PROPERTY_NAME,
                 "title": {"equals": title},
             }
         }
         with httpx.Client(headers=self.headers, timeout=20.0) as client:
-            res = client.post(query_url, json=query_data)
+            res = client.post(url, json=data, timeout=20.0)
         if not res.is_success:
             logger.error("Notion query error: %s\nResponse body: %s", res.status_code, res.text)
             res.raise_for_status()
