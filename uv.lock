@@ -213,12 +213,12 @@ dependencies = [
     { name = "injector" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
-    { name = "pytest" },
 ]
 
 [package.dev-dependencies]
 dev = [
     { name = "mypy" },
+    { name = "pytest" },
     { name = "ruff" },
 ]
 
@@ -228,12 +228,12 @@ requires-dist = [
     { name = "injector", specifier = ">=0.24.0" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pydantic-settings", specifier = ">=2.13.1" },
-    { name = "pytest", specifier = ">=9.0.2" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "mypy", specifier = ">=1.19.1" },
+    { name = "pytest", specifier = ">=9.0.2" },
     { name = "ruff", specifier = ">=0.15.5" },
 ]
 
