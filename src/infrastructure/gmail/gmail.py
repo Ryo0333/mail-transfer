@@ -59,14 +59,18 @@ class GmailClient:
                 if content_type == "text/plain" and "attachment" not in content_disposition:
                     try:
                         payload = part.get_payload(decode=True)
-                        body = payload.decode() if isinstance(payload, bytes) else ""
+                        if isinstance(payload, bytes):
+                            charset = part.get_content_charset() or "iso-2022-jp"
+                            body = payload.decode(charset)
                         break
                     except Exception as e:
                         logger.warning("本文のデコードに失敗しました: %s", e)
         else:
             try:
                 payload = msg.get_payload(decode=True)
-                body = payload.decode() if isinstance(payload, bytes) else ""
+                if isinstance(payload, bytes):
+                    charset = msg.get_content_charset() or "iso-2022-jp"
+                    body = payload.decode(charset)
             except Exception as e:
                 logger.warning("本文のデコードに失敗しました: %s", e)
 
