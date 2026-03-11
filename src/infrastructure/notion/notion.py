@@ -36,7 +36,7 @@ class NotionClient:
             "children": self._split_into_paragraph_blocks(mail.body),
         }
         with httpx.Client(headers=self.headers, timeout=20.0) as client:
-            res = client.post(NOTION_PAGES_URL, json=notion_data, timeout=20.0)
+            res = client.post(NOTION_PAGES_URL, json=notion_data)
         if res.is_success:
             return
         logger.error("Notion API error: %s\nResponse body: %s", res.status_code, res.text)
@@ -51,7 +51,7 @@ class NotionClient:
             }
         }
         with httpx.Client(headers=self.headers, timeout=20.0) as client:
-            res = client.post(url, json=data, timeout=20.0)
+            res = client.post(url, json=data)
         if not res.is_success:
             logger.error("Notion query error: %s\nResponse body: %s", res.status_code, res.text)
             res.raise_for_status()
