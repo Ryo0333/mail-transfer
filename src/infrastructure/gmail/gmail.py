@@ -95,4 +95,15 @@ class GmailClient:
         return Mail(subject=subject, sender=sender, body=body)
 
     def _strip_html(self, html: str) -> str:
-        return BeautifulSoup(html, "html.parser").get_text(separator="\n")
+        soup = BeautifulSoup(html, "html.parser")
+        for a in soup.find_all("a"):
+            href = a.get("href")
+            text = a.get_text(strip=True)
+            if not href:
+                a.replace_with(text)
+                continue
+            if text != href:
+                a.replace_with(f"{text} ({href})")
+                continue
+            a.replace_with(str(href))
+        return soup.get_text(separator="\n")

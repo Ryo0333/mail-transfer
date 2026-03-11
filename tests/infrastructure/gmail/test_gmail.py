@@ -159,6 +159,49 @@ class TestParseEmail:
         assert "<" not in result.body
         assert ">" not in result.body
 
+    def test_link_text_and_href_are_preserved(self, gmail_client: GmailClient) -> None:
+        # Arrange
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = "Link test"
+        msg["From"] = "sender@example.com"
+        msg.attach(MIMEText('<p>詳細は<a href="https://example.com">こちら</a>へ</p>', "html"))
+
+        # Act
+        result = gmail_client._parse_email(msg.as_bytes())
+
+        # Assert
+        assert "こちら" in result.body
+        assert "https://example.com" in result.body
+        assert "<a" not in result.body
+
+    def test_link_url_only_is_preserved(self, gmail_client: GmailClient) -> None:
+        # Arrange: リンクテキストと href が同じ場合は URL のみ残す
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = "URL only link"
+        msg["From"] = "sender@example.com"
+        msg.attach(MIMEText('<a href="https://example.com">https://example.com</a>', "html"))
+
+        # Act
+        result = gmail_client._parse_email(msg.as_bytes())
+
+        # Assert
+        assert "https://example.com" in result.body
+        assert result.body.count("https://example.com") == 1  # 重複しない
+
+    def test_link_without_href_shows_text_only(self, gmail_client: GmailClient) -> None:
+        # Arrange
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = "No href link"
+        msg["From"] = "sender@example.com"
+        msg.attach(MIMEText('<a>anchor text</a>', "html"))
+
+        # Act
+        result = gmail_client._parse_email(msg.as_bytes())
+
+        # Assert
+        assert "anchor text" in result.body
+        assert "<a" not in result.body
+
     def test_plain_text_takes_priority_over_html(self, gmail_client: GmailClient) -> None:
         # Arrange
         msg = MIMEMultipart("alternative")
