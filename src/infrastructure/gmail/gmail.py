@@ -1,6 +1,7 @@
 import email
 import imaplib
 from email.header import decode_header
+from email.message import Message
 
 from bs4 import BeautifulSoup
 
@@ -47,52 +48,52 @@ class GmailClient:
 
     def _parse_email(self, raw_bytes: bytes) -> Mail:
         msg = email.message_from_bytes(raw_bytes)
-
-        subject, encoding = decode_header(msg["Subject"])[0]
-        if isinstance(subject, bytes):
-            subject = subject.decode(encoding if encoding else "utf-8")
-
+        subject = self._decode_subject(msg["Subject"])
         sender = msg.get("From")
         if sender is None:
             raise ValueError("From is not set")
+        return Mail(subject=subject, sender=sender, body=self._extract_body(msg))
 
-        body = ""
+    def _decode_subject(self, raw_subject: str) -> str:
+        subject, encoding = decode_header(raw_subject)[0]
+        if isinstance(subject, bytes):
+            return subject.decode(encoding if encoding else "utf-8")
+        return subject
+
+    def _extract_body(self, msg: Message) -> str:
         if msg.is_multipart():
-            html_fallback: str | None = None
-            for part in msg.walk():
-                content_type = part.get_content_type()
-                content_disposition = str(part.get("Content-Disposition"))
-                if "attachment" in content_disposition:
-                    continue
-                try:
-                    payload = part.get_payload(decode=True)
-                    if not isinstance(payload, bytes):
-                        continue
-                    charset = part.get_content_charset() or "iso-2022-jp"
-                    text = payload.decode(charset)
-                    if content_type == "text/plain":
-                        body = text
-                        break
-                    if content_type == "text/html" and html_fallback is None:
-                        html_fallback = text
-                except Exception as e:
-                    logger.warning("本文のデコードに失敗しました: %s", e)
-            if not body and html_fallback is not None:
-                body = self._strip_html(html_fallback)
-        else:
+            return self._extract_body_multipart(msg)
+        return self._extract_body_single(msg)
+
+    def _extract_body_multipart(self, msg: Message) -> str:
+        html_fallback: str | None = None
+        for part in msg.walk():
+            content_type = part.get_content_type()
+            if "attachment" in str(part.get("Content-Disposition")):
+                continue
             try:
-                payload = msg.get_payload(decode=True)
-                if isinstance(payload, bytes):
-                    charset = msg.get_content_charset() or "iso-2022-jp"
-                    text = payload.decode(charset)
-                    if msg.get_content_type() == "text/html":
-                        body = self._strip_html(text)
-                    else:
-                        body = text
+                payload = part.get_payload(decode=True)
+                if not isinstance(payload, bytes):
+                    continue
+                text = payload.decode(part.get_content_charset() or "iso-2022-jp")
+                if content_type == "text/plain":
+                    return text
+                if content_type == "text/html" and html_fallback is None:
+                    html_fallback = text
             except Exception as e:
                 logger.warning("本文のデコードに失敗しました: %s", e)
+        return self._strip_html(html_fallback) if html_fallback else ""
 
-        return Mail(subject=subject, sender=sender, body=body)
+    def _extract_body_single(self, msg: Message) -> str:
+        try:
+            payload = msg.get_payload(decode=True)
+            if not isinstance(payload, bytes):
+                return ""
+            text = payload.decode(msg.get_content_charset() or "iso-2022-jp")
+            return self._strip_html(text) if msg.get_content_type() == "text/html" else text
+        except Exception as e:
+            logger.warning("本文のデコードに失敗しました: %s", e)
+            return ""
 
     def _strip_html(self, html: str) -> str:
         soup = BeautifulSoup(html, "html.parser")
