@@ -35,12 +35,10 @@ testpaths = ["tests"]
 pythonpath = ["."]
 
 [tool.mypy]
+strict = true
 exclude = [
   '^\.git/',
   '^\.mypy_cache/',
   '^\.venv',
   '^\.ruff_cache/',
 ]
-
-[[tool.mypy.overrides]]
-ignore_missing_imports = true

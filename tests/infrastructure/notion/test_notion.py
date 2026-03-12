@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -11,7 +12,7 @@ def notion_client() -> NotionClient:
     return NotionClient(api_key="test-api-key", data_source_id="test-db-id")
 
 
-def _make_mock_http_client(is_success: bool = True, json_data: dict | None = None) -> MagicMock:
+def _make_mock_http_client(is_success: bool = True, json_data: dict[str, Any] | None = None) -> MagicMock:
     mock_response = MagicMock()
     mock_response.is_success = is_success
     mock_response.json.return_value = json_data or {}
@@ -178,6 +179,10 @@ class TestExport:
 
         # Assert
         call_kwargs = mock_client.post.call_args
-        payload = call_kwargs.kwargs.get("json") or call_kwargs.args[1] if len(call_kwargs.args) > 1 else call_kwargs.kwargs["json"]
+        payload = (
+            call_kwargs.kwargs.get("json") or call_kwargs.args[1]
+            if len(call_kwargs.args) > 1
+            else call_kwargs.kwargs["json"]
+        )
         title_content = payload["properties"]["Name"]["title"][0]["text"]["content"]
         assert title_content == "My Title"

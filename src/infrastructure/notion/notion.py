@@ -1,3 +1,5 @@
+from typing import Any
+
 import httpx
 from httpx import URL, Headers
 
@@ -57,7 +59,7 @@ class NotionClient:
             res.raise_for_status()
         return len(res.json().get("results", [])) > 0
 
-    def _split_into_paragraph_blocks(self, text: str) -> list[dict]:
+    def _split_into_paragraph_blocks(self, text: str) -> list[dict[str, Any]]:
         if not text:
             return []
         return [
