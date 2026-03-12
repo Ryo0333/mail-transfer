@@ -13,4 +13,4 @@ format:
 
 .PHONY: run
 run:
-	dotenvx run -- python -m src.main
+	dotenvx run --env-file .env.encrypted -- python -m src.main

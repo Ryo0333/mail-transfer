@@ -47,7 +47,7 @@ uv sync
 
 ### 環境変数の設定
 
-`.env` の値は dotenvx で暗号化されています。`make set` で追加・更新できます。
+`.env.encrypted` の値は dotenvx で暗号化されています。
 
 ```bash
 make set KEY=GMAIL_USERNAME VALUE=your@gmail.com
