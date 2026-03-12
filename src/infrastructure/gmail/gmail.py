@@ -23,14 +23,18 @@ class GmailClient:
 
     def fetch_all(self) -> list[Mail]:
         messages = self.mailbox.fetch(AND(from_=self.from_email))
-        mails = [self._to_mail(msg) for msg in messages]
-        if self.subject_prefix is not None:
-            mails = [mail for mail in mails if mail.subject.startswith(self.subject_prefix)]
-        return mails
+        return [
+            self._to_mail(msg)
+            for msg in messages
+            if self.subject_prefix is None or msg.subject.startswith(self.subject_prefix)
+        ]
 
     def _to_mail(self, msg: MailMessage) -> Mail:
-        body = msg.text or (self._strip_html(msg.html) if msg.html else "")
-        return Mail(subject=msg.subject, sender=msg.from_, body=body)
+        return Mail(
+            subject=msg.subject,
+            sender=msg.from_,
+            body=msg.text or (self._strip_html(msg.html) if msg.html else ""),
+        )
 
     def _strip_html(self, html: str) -> str:
         soup = BeautifulSoup(html, "html.parser")
