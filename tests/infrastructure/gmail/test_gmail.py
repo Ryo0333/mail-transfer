@@ -1,6 +1,3 @@
-import email
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -9,304 +6,104 @@ from src.domain.models.mail import Mail
 from src.infrastructure.gmail.gmail import GmailClient
 
 
+def _make_msg(subject: str, from_: str, text: str = "", html: str = "") -> MagicMock:
+    msg = MagicMock()
+    msg.subject = subject
+    msg.from_ = from_
+    msg.text = text
+    msg.html = html
+    return msg
+
+
 @pytest.fixture
 def gmail_client() -> GmailClient:
-    with patch("src.infrastructure.gmail.gmail.imaplib.IMAP4_SSL") as mock_imap_class:
-        mock_imap = MagicMock()
-        mock_imap_class.return_value = mock_imap
-        client = GmailClient(username="user@example.com", app_password="password", from_email="sender@example.com")
-        return client
+    with patch("src.infrastructure.gmail.gmail.MailBox") as mock_mailbox_class:
+        mock_mailbox = MagicMock()
+        mock_mailbox_class.return_value.login.return_value = mock_mailbox
+        return GmailClient(username="user@example.com", app_password="password", from_email="sender@example.com")
 
 
-class TestParseEmail:
-    def test_simple_plain_text(self, gmail_client: GmailClient) -> None:
-        # Arrange
-        msg = email.message.EmailMessage()
-        msg["Subject"] = "Test Subject"
-        msg["From"] = "sender@example.com"
-        msg.set_content("Hello World")
-
-        # Act
-        result = gmail_client._parse_email(msg.as_bytes())
-
-        # Assert
+class TestToMail:
+    def test_maps_subject_and_sender(self, gmail_client: GmailClient) -> None:
+        msg = _make_msg("Test Subject", "from@example.com", text="Body")
+        result = gmail_client._to_mail(msg)
         assert result.subject == "Test Subject"
-        assert result.sender == "sender@example.com"
-        assert "Hello World" in result.body
+        assert result.sender == "from@example.com"
 
-    def test_multipart_uses_plain_text_part(self, gmail_client: GmailClient) -> None:
-        # Arrange
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = "Multipart Subject"
-        msg["From"] = "multipart@example.com"
-        msg.attach(MIMEText("Plain text body", "plain"))
-        msg.attach(MIMEText("<html>HTML body</html>", "html"))
+    def test_uses_plain_text_body(self, gmail_client: GmailClient) -> None:
+        msg = _make_msg("S", "f@e.com", text="Plain text", html="<p>HTML</p>")
+        result = gmail_client._to_mail(msg)
+        assert result.body == "Plain text"
 
-        # Act
-        result = gmail_client._parse_email(msg.as_bytes())
+    def test_falls_back_to_stripped_html(self, gmail_client: GmailClient) -> None:
+        msg = _make_msg("S", "f@e.com", text="", html="<p>Hello</p>")
+        result = gmail_client._to_mail(msg)
+        assert "Hello" in result.body
+        assert "<" not in result.body
 
-        # Assert
-        assert result.subject == "Multipart Subject"
-        assert result.sender == "multipart@example.com"
-        assert "Plain text body" in result.body
-
-    def test_encoded_utf8_subject(self, gmail_client: GmailClient) -> None:
-        # Arrange ("テスト" encoded as UTF-8 base64)
-        msg = MIMEMultipart()
-        msg["Subject"] = "=?utf-8?b?44OG44K544OI?="
-        msg["From"] = "sender@example.com"
-        msg.attach(MIMEText("Body", "plain"))
-
-        # Act
-        result = gmail_client._parse_email(msg.as_bytes())
-
-        # Assert
-        assert result.subject == "テスト"
-        assert result.sender == "sender@example.com"
-
-    def test_raises_when_from_header_missing(self, gmail_client: GmailClient) -> None:
-        # Arrange
-        msg = email.message.EmailMessage()
-        msg["Subject"] = "No Sender"
-        msg.set_content("Body")
-
-        # Act & Assert
-        with pytest.raises(ValueError, match="From is not set"):
-            gmail_client._parse_email(msg.as_bytes())
+    def test_empty_body_when_no_text_or_html(self, gmail_client: GmailClient) -> None:
+        msg = _make_msg("S", "f@e.com", text="", html="")
+        assert gmail_client._to_mail(msg).body == ""
 
     def test_returns_mail_instance(self, gmail_client: GmailClient) -> None:
-        # Arrange
-        msg = email.message.EmailMessage()
-        msg["Subject"] = "Subject"
-        msg["From"] = "from@example.com"
-        msg.set_content("Body")
+        msg = _make_msg("S", "f@e.com", text="Body")
+        assert isinstance(gmail_client._to_mail(msg), Mail)
 
-        # Act
-        result = gmail_client._parse_email(msg.as_bytes())
 
-        # Assert
-        assert isinstance(result, Mail)
-
-    def test_empty_body(self, gmail_client: GmailClient) -> None:
-        # Arrange
-        msg = MIMEMultipart()
-        msg["Subject"] = "Empty Body"
-        msg["From"] = "sender@example.com"
-        msg.attach(MIMEText("", "plain"))
-
-        # Act
-        result = gmail_client._parse_email(msg.as_bytes())
-
-        # Assert
-        assert result.body == ""
-
-    def test_iso2022jp_body_is_decoded_correctly(self, gmail_client: GmailClient) -> None:
-        # Arrange
-        msg = MIMEMultipart()
-        msg["Subject"] = "ISO-2022-JP test"
-        msg["From"] = "sender@example.com"
-        msg.attach(MIMEText("日本語の本文", "plain", "iso-2022-jp"))
-
-        # Act
-        result = gmail_client._parse_email(msg.as_bytes())
-
-        # Assert
-        assert result.body == "日本語の本文"
-
-    def test_iso2022jp_body_multipart_is_decoded_correctly(self, gmail_client: GmailClient) -> None:
-        # Arrange
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = "ISO-2022-JP multipart test"
-        msg["From"] = "sender@example.com"
-        msg.attach(MIMEText("日本語の本文", "plain", "iso-2022-jp"))
-        msg.attach(MIMEText("<p>日本語</p>", "html", "iso-2022-jp"))
-
-        # Act
-        result = gmail_client._parse_email(msg.as_bytes())
-
-        # Assert
-        assert result.body == "日本語の本文"
-
-    def test_html_only_body_is_stripped(self, gmail_client: GmailClient) -> None:
-        # Arrange
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = "HTML only"
-        msg["From"] = "sender@example.com"
-        msg.attach(MIMEText("<p>Hello <b>World</b></p>", "html"))
-
-        # Act
-        result = gmail_client._parse_email(msg.as_bytes())
-
-        # Assert
-        assert "Hello" in result.body
-        assert "World" in result.body
-        assert "<" not in result.body
-        assert ">" not in result.body
-
-    def test_html_single_part_body_is_stripped(self, gmail_client: GmailClient) -> None:
-        # Arrange
-        msg = email.message.EmailMessage()
-        msg["Subject"] = "Single HTML"
-        msg["From"] = "sender@example.com"
-        msg.set_content("<p>Hello <b>World</b></p>", subtype="html")
-
-        # Act
-        result = gmail_client._parse_email(msg.as_bytes())
-
-        # Assert
-        assert "Hello" in result.body
-        assert "World" in result.body
-        assert "<" not in result.body
-        assert ">" not in result.body
+class TestStripHtml:
+    def test_strips_html_tags(self, gmail_client: GmailClient) -> None:
+        result = gmail_client._strip_html("<p>Hello <b>World</b></p>")
+        assert "Hello" in result
+        assert "World" in result
+        assert "<" not in result
+        assert ">" not in result
 
     def test_link_text_and_href_are_preserved(self, gmail_client: GmailClient) -> None:
-        # Arrange
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = "Link test"
-        msg["From"] = "sender@example.com"
-        msg.attach(MIMEText('<p>詳細は<a href="https://example.com">こちら</a>へ</p>', "html"))
+        result = gmail_client._strip_html('<p>詳細は<a href="https://example.com">こちら</a>へ</p>')
+        assert "こちら" in result
+        assert "https://example.com" in result
+        assert "<a" not in result
 
-        # Act
-        result = gmail_client._parse_email(msg.as_bytes())
-
-        # Assert
-        assert "こちら" in result.body
-        assert "https://example.com" in result.body
-        assert "<a" not in result.body
-
-    def test_link_url_only_is_preserved(self, gmail_client: GmailClient) -> None:
-        # Arrange: リンクテキストと href が同じ場合は URL のみ残す
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = "URL only link"
-        msg["From"] = "sender@example.com"
-        msg.attach(MIMEText('<a href="https://example.com">https://example.com</a>', "html"))
-
-        # Act
-        result = gmail_client._parse_email(msg.as_bytes())
-
-        # Assert
-        assert "https://example.com" in result.body
-        assert result.body.count("https://example.com") == 1  # 重複しない
+    def test_link_url_only_is_not_duplicated(self, gmail_client: GmailClient) -> None:
+        result = gmail_client._strip_html('<a href="https://example.com">https://example.com</a>')
+        assert "https://example.com" in result
+        assert result.count("https://example.com") == 1
 
     def test_link_without_href_shows_text_only(self, gmail_client: GmailClient) -> None:
-        # Arrange
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = "No href link"
-        msg["From"] = "sender@example.com"
-        msg.attach(MIMEText('<a>anchor text</a>', "html"))
-
-        # Act
-        result = gmail_client._parse_email(msg.as_bytes())
-
-        # Assert
-        assert "anchor text" in result.body
-        assert "<a" not in result.body
-
-    def test_plain_text_takes_priority_over_html(self, gmail_client: GmailClient) -> None:
-        # Arrange
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = "Priority test"
-        msg["From"] = "sender@example.com"
-        msg.attach(MIMEText("Plain text", "plain"))
-        msg.attach(MIMEText("<p>HTML text</p>", "html"))
-
-        # Act
-        result = gmail_client._parse_email(msg.as_bytes())
-
-        # Assert
-        assert result.body == "Plain text"
+        result = gmail_client._strip_html("<a>anchor text</a>")
+        assert "anchor text" in result
+        assert "<a" not in result
 
 
 class TestFetchAll:
-    def test_filters_by_subject_prefix(self) -> None:
-        # Arrange
-        with patch("src.infrastructure.gmail.gmail.imaplib.IMAP4_SSL") as mock_imap_class:
-            mock_imap = MagicMock()
-            mock_imap_class.return_value = mock_imap
-            client = GmailClient(
-                username="user@example.com",
-                app_password="password",
-                from_email="sender@example.com",
-                subject_prefix="週刊Life is beautiful",
-            )
-
-        client.client = mock_imap
-        client.client.search.return_value = (None, [b"1 2 3"])
-
-        def fake_fetch(email_id: str, fmt: str) -> tuple[None, list]:
-            subjects = {"1": "週刊Life is beautiful 第100号", "2": "other newsletter", "3": "週刊Life is beautiful 第101号"}
-            msg = email.message.EmailMessage()
-            msg["Subject"] = subjects[email_id]
-            msg["From"] = "from@example.com"
-            msg.set_content(f"Body {email_id}")
-            return (None, [(None, msg.as_bytes())])
-
-        client.client.fetch.side_effect = fake_fetch
-
-        # Act
-        result = client.fetch_all()
-
-        # Assert
+    def test_filters_by_subject_prefix(self, gmail_client: GmailClient) -> None:
+        gmail_client.mailbox.fetch.return_value = [
+            _make_msg("週刊Life is beautiful 第100号", "from@example.com", text="Body 1"),
+            _make_msg("other newsletter", "from@example.com", text="Body 2"),
+            _make_msg("週刊Life is beautiful 第101号", "from@example.com", text="Body 3"),
+        ]
+        gmail_client.subject_prefix = "週刊Life is beautiful"
+        result = gmail_client.fetch_all()
         assert len(result) == 2
         assert all(mail.subject.startswith("週刊Life is beautiful") for mail in result)
 
     def test_no_prefix_returns_all_emails(self, gmail_client: GmailClient) -> None:
-        # Arrange
-        gmail_client.client.search.return_value = (None, [b"1 2"])
-
-        def fake_fetch(email_id: str, fmt: str) -> tuple[None, list]:
-            subjects = {"1": "週刊Life is beautiful 第100号", "2": "other newsletter"}
-            msg = email.message.EmailMessage()
-            msg["Subject"] = subjects[email_id]
-            msg["From"] = "from@example.com"
-            msg.set_content(f"Body {email_id}")
-            return (None, [(None, msg.as_bytes())])
-
-        gmail_client.client.fetch.side_effect = fake_fetch
-
-        # Act
+        gmail_client.mailbox.fetch.return_value = [
+            _make_msg("Subject 1", "from@example.com", text="Body 1"),
+            _make_msg("Subject 2", "from@example.com", text="Body 2"),
+        ]
         result = gmail_client.fetch_all()
-
-        # Assert
         assert len(result) == 2
 
     def test_returns_empty_list_when_no_emails(self, gmail_client: GmailClient) -> None:
-        # Arrange
-        gmail_client.client.search.return_value = (None, [b""])
+        gmail_client.mailbox.fetch.return_value = []
+        assert gmail_client.fetch_all() == []
 
-        # Act
+    def test_fetches_with_from_filter(self, gmail_client: GmailClient) -> None:
+        gmail_client.mailbox.fetch.return_value = [
+            _make_msg("Mail 1", "sender@example.com", text="Body 1"),
+            _make_msg("Mail 2", "sender@example.com", text="Body 2"),
+        ]
         result = gmail_client.fetch_all()
-
-        # Assert
-        assert result == []
-        gmail_client.client.search.assert_called_once_with(None, 'FROM "sender@example.com"')
-
-    def test_fetches_each_email_by_id(self, gmail_client: GmailClient) -> None:
-        # Arrange
-        gmail_client.client.search.return_value = (None, [b"1 2"])
-
-        def fake_fetch(email_id: str, fmt: str) -> tuple[None, list]:
-            msg = email.message.EmailMessage()
-            msg["Subject"] = f"Mail {email_id}"
-            msg["From"] = "from@example.com"
-            msg.set_content(f"Body {email_id}")
-            return (None, [(None, msg.as_bytes())])
-
-        gmail_client.client.fetch.side_effect = fake_fetch
-
-        # Act
-        result = gmail_client.fetch_all()
-
-        # Assert
         assert len(result) == 2
-        assert gmail_client.client.fetch.call_count == 2
-
-
-class TestFetchById:
-    def test_raises_when_no_matching_response(self, gmail_client: GmailClient) -> None:
-        # Arrange
-        gmail_client.client.fetch.return_value = (None, [None])
-
-        # Act & Assert
-        with pytest.raises(ValueError, match="No email found for 42"):
-            gmail_client._fetch_by_id("42")
+        gmail_client.mailbox.fetch.assert_called_once()
