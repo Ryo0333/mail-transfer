@@ -16,9 +16,13 @@ def _make_msg(subject: str, from_: str, text: str = "", html: str = "") -> Magic
 
 
 @pytest.fixture
-def gmail_client() -> GmailClient:
+def mock_mailbox() -> MagicMock:
+    return MagicMock()
+
+
+@pytest.fixture
+def gmail_client(mock_mailbox: MagicMock) -> GmailClient:
     with patch("src.infrastructure.gmail.gmail.MailBox") as mock_mailbox_class:
-        mock_mailbox = MagicMock()
         mock_mailbox_class.return_value.login.return_value = mock_mailbox
         return GmailClient(username="user@example.com", app_password="password", from_email="sender@example.com")
 
@@ -76,8 +80,8 @@ class TestStripHtml:
 
 
 class TestFetchAll:
-    def test_filters_by_subject_prefix(self, gmail_client: GmailClient) -> None:
-        gmail_client.mailbox.fetch.return_value = [
+    def test_filters_by_subject_prefix(self, gmail_client: GmailClient, mock_mailbox: MagicMock) -> None:
+        mock_mailbox.fetch.return_value = [
             _make_msg("週刊Life is beautiful 第100号", "from@example.com", text="Body 1"),
             _make_msg("other newsletter", "from@example.com", text="Body 2"),
             _make_msg("週刊Life is beautiful 第101号", "from@example.com", text="Body 3"),
@@ -87,23 +91,23 @@ class TestFetchAll:
         assert len(result) == 2
         assert all(mail.subject.startswith("週刊Life is beautiful") for mail in result)
 
-    def test_no_prefix_returns_all_emails(self, gmail_client: GmailClient) -> None:
-        gmail_client.mailbox.fetch.return_value = [
+    def test_no_prefix_returns_all_emails(self, gmail_client: GmailClient, mock_mailbox: MagicMock) -> None:
+        mock_mailbox.fetch.return_value = [
             _make_msg("Subject 1", "from@example.com", text="Body 1"),
             _make_msg("Subject 2", "from@example.com", text="Body 2"),
         ]
         result = gmail_client.fetch_all()
         assert len(result) == 2
 
-    def test_returns_empty_list_when_no_emails(self, gmail_client: GmailClient) -> None:
-        gmail_client.mailbox.fetch.return_value = []
+    def test_returns_empty_list_when_no_emails(self, gmail_client: GmailClient, mock_mailbox: MagicMock) -> None:
+        mock_mailbox.fetch.return_value = []
         assert gmail_client.fetch_all() == []
 
-    def test_fetches_with_from_filter(self, gmail_client: GmailClient) -> None:
-        gmail_client.mailbox.fetch.return_value = [
+    def test_fetches_with_from_filter(self, gmail_client: GmailClient, mock_mailbox: MagicMock) -> None:
+        mock_mailbox.fetch.return_value = [
             _make_msg("Mail 1", "sender@example.com", text="Body 1"),
             _make_msg("Mail 2", "sender@example.com", text="Body 2"),
         ]
         result = gmail_client.fetch_all()
         assert len(result) == 2
-        gmail_client.mailbox.fetch.assert_called_once()
+        mock_mailbox.fetch.assert_called_once()
