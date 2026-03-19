@@ -13,13 +13,13 @@ jobs:
       DOTENV_PRIVATE_KEY_ENCRYPTED: ${{ secrets.DOTENV_PRIVATE_KEY }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install dotenvx
-        run: curl -fsS https://dotenvx.com/install.sh | sh
+        run: curl -sfS https://dotenvx.sh/install.sh | sh
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v7
 
       - name: Run mail transfer
         run: dotenvx run -f .env.encrypted -- uv run python main.py
