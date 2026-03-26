@@ -1,16 +1,13 @@
-.PHONY: test
+COMPOSE_RUN := docker compose run --rm mail-transfer
+
 test:
-	uv run pytest
+	$(COMPOSE_RUN) uv run pytest
 
-.PHONY: lint
 lint:
-	uv run ruff check .
-	uv run mypy .
+	$(COMPOSE_RUN) sh -c "uv run ruff check . && uv run mypy ."
 
-.PHONY: format
 format:
-	uv run ruff format .
+	$(COMPOSE_RUN) uv run ruff format .
 
-.PHONY: run
 run:
-	dotenvx run --env-file .env.encrypted -- python -m src.main
+	$(COMPOSE_RUN) dotenvx run --env-file .env.encrypted -- uv run python -m src.main

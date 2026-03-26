@@ -1,0 +1,17 @@
+services:
+  mail-transfer:
+    build: .
+    working_dir: /app
+    volumes:
+      - .:/app
+      - mail-transfer-venv:/app/.venv
+      - mail-transfer-mypy-cache:/app/.mypy_cache
+      - mail-transfer-ruff-cache:/app/.ruff_cache
+    environment:
+      PYTHONPATH: /app
+      DOTENV_PRIVATE_KEY: ${DOTENV_PRIVATE_KEY:-}
+
+volumes:
+  mail-transfer-venv:
+  mail-transfer-mypy-cache:
+  mail-transfer-ruff-cache:
