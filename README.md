@@ -141,21 +141,18 @@ cd mail-transfer
 
 ### 2. 環境変数の設定
 
-[dotenvx](https://dotenvx.com/) を使って `.env.encrypted` に暗号化して保存します。
+[dotenvx](https://dotenvx.com/) を使って `.env.encrypted` に暗号化して保存します。Docker イメージに dotenvx が入っており、リポジトリが `/app` にマウントされるため、**ホストに dotenvx を入れずに**、以下のようにコンテナ内で `dotenvx set` を実行します。`.env.encrypted` と `.env.keys` はワークスペース直下に生成・更新されます。
 
 ```bash
-# dotenvx インストール（未インストールの場合）
-curl -sfS https://dotenvx.sh/install.sh | sh
-
-# 各環境変数を設定（.env.encrypted と .env.keys が自動生成されます）
-dotenvx set GMAIL_USERNAME your@gmail.com
-dotenvx set GMAIL_APP_PASSWORD xxxx-xxxx-xxxx-xxxx
-dotenvx set NOTION_API_KEY secret_...
-dotenvx set NOTION_DATA_SOURCE_ID <data-source-id>
-dotenvx set FROM_EMAIL sender@example.com
+# 各環境変数を設定
+docker compose run --rm mail-transfer dotenvx set GMAIL_USERNAME your@gmail.com
+docker compose run --rm mail-transfer dotenvx set GMAIL_APP_PASSWORD xxxx-xxxx-xxxx-xxxx
+docker compose run --rm mail-transfer dotenvx set NOTION_API_KEY secret_...
+docker compose run --rm mail-transfer dotenvx set NOTION_DATA_SOURCE_ID <data-source-id>
+docker compose run --rm mail-transfer dotenvx set FROM_EMAIL sender@example.com
 
 # 任意：件名がこの文字列で始まるメールのみ転送
-dotenvx set SUBJECT_PREFIX '[Newsletter] '
+docker compose run --rm mail-transfer dotenvx set SUBJECT_PREFIX '[Newsletter] '
 ```
 
 
