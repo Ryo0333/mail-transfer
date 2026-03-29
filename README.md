@@ -58,28 +58,6 @@ NotionClient.export()            ← Notion API でページ作成
 Notion データベース
 ```
 
-### レイヤー構成（ポート＆アダプター）
-
-```
-┌─────────────────────────────────────────────┐
-│  Entrypoint  (src/main.py)                  │
-│  ┌───────────────────────────────────────┐  │
-│  │  Usecase  (MailTransferService)       │  │
-│  │  ┌─────────────────────────────────┐ │  │
-│  │  │  Domain  (interfaces / models)  │ │  │
-│  │  └────────────┬────────────────────┘ │  │
-│  └───────────────┼───────────────────────┘  │
-│                  │ Protocol                  │
-│  ┌───────────────▼───────────────────────┐  │
-│  │  Infrastructure                       │  │
-│  │  ├── gmail/   (GmailClient)           │  │
-│  │  └── notion/  (NotionClient)          │  │
-│  └───────────────────────────────────────┘  │
-└─────────────────────────────────────────────┘
-```
-
----
-
 ## ディレクトリ構成
 
 ```
@@ -118,10 +96,13 @@ mail-transfer/
 
 ## こだわり・工夫した点
 
-### 1. ポート＆アダプターパターンによる疎結合設計
+### 1. ポート＆アダプターパターンと DI によるドメインの隔離
 
-`src/domain/interfaces.py` に `MailFetcher` / `MailExporter` の Protocol を定義し、ユースケース層は具体的な実装（Gmail・Notion）に依存しません。
-Gmail を別のメールプロバイダに、Notion を別のストレージに差し替える場合も、インフラ層の実装を追加するだけで済みます。
+ドメイン層を外部の技術的な詳細（Gmail / Notion）から完全に隔離し、ビジネスロジックを純粋に保ちます。
+
+- **ドメインの抽象化**: `src/domain/interfaces.py` に Protocol を定義し、「メールを取得する」「エクスポートする」というドメインの関心事だけを記述します。
+- **インフラ層の差し替え**: `injector` を用いて、実行時に Gmail や Notion といった具体的なインフラ実装を注入（DI）します。
+- **テストの効率化**: テスト時はモック実装を DI で差し替えるだけで、外部 API に依存しない高速かつ堅牢な検証が可能です。
 
 ```python
 class MailFetcher(Protocol):
@@ -131,21 +112,12 @@ class MailExporter(Protocol):
     def export(self, mail: Mail) -> None: ...
 ```
 
-### 2. injector による DI（依存性注入）
-
-`injector` ライブラリで `MailFetcher` / `MailExporter` の実装をバインドし、`MailTransferService` はコンストラクタインジェクションで受け取ります。
-テスト時はモック実装をバインドするだけで、外部 API への接続なしにユースケースのテストが可能です。
-
-### 3. HTML メールのプレーンテキスト変換
-
-BeautifulSoup でリンクを `表示テキスト (URL)` 形式に変換してからテキスト抽出することで、Notion 上でも URL が失われずに読めます。
-
-### 4. dotenvx による秘密情報の暗号化管理
+### 2. dotenvx による秘密情報の暗号化管理
 
 `.env.encrypted` をリポジトリに含め、復号キーのみ GitHub Secrets / 環境変数で管理します。
 平文の `.env` をリポジトリに含めずに秘密情報をコードと一緒にバージョン管理できます。
 
-### 5. mypy + ruff による型安全性
+### 3. mypy + ruff による型安全性
 
 `mypy --strict` モードで全ファイルに型を強制し、`ruff` で静的解析・フォーマットを自動化しています。
 pre-commit フックと組み合わせることで、コミット前にコード品質を担保しています。
@@ -211,7 +183,7 @@ make run
 
 ```bash
 # uv でパッケージインストール
-uv sync
+make install
 
 # テスト
 make test
