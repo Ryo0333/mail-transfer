@@ -31,6 +31,7 @@ class GmailClient:
 
     def _to_mail(self, msg: MailMessage) -> Mail:
         return Mail(
+            message_id=msg.headers.get("message-id", ("",))[0],
             subject=msg.subject,
             sender=msg.from_,
             body=msg.text or (self._strip_html(msg.html) if msg.html else ""),

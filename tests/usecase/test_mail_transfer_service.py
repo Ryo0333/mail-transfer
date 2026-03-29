@@ -36,7 +36,7 @@ def test_execute_no_mails_skips_export() -> None:
 
 def test_execute_single_mail_exports_once() -> None:
     # Arrange
-    mail = Mail(subject="Subject", sender="sender@example.com", body="Body")
+    mail = Mail(message_id="<1@example.com>", subject="Subject", sender="sender@example.com", body="Body")
     service, _, exporter = _make_service([mail])
 
     # Act
@@ -49,9 +49,9 @@ def test_execute_single_mail_exports_once() -> None:
 def test_execute_multiple_mails_exports_all() -> None:
     # Arrange
     mails = [
-        Mail(subject="Subject 1", sender="a@example.com", body="Body 1"),
-        Mail(subject="Subject 2", sender="b@example.com", body="Body 2"),
-        Mail(subject="Subject 3", sender="c@example.com", body="Body 3"),
+        Mail(message_id="<1@example.com>", subject="Subject 1", sender="a@example.com", body="Body 1"),
+        Mail(message_id="<2@example.com>", subject="Subject 2", sender="b@example.com", body="Body 2"),
+        Mail(message_id="<3@example.com>", subject="Subject 3", sender="c@example.com", body="Body 3"),
     ]
     service, _, exporter = _make_service(mails)
 
@@ -67,8 +67,8 @@ def test_execute_multiple_mails_exports_all() -> None:
 def test_execute_preserves_mail_order() -> None:
     # Arrange
     mails = [
-        Mail(subject="First", sender="a@example.com", body=""),
-        Mail(subject="Second", sender="b@example.com", body=""),
+        Mail(message_id="<1@example.com>", subject="First", sender="a@example.com", body=""),
+        Mail(message_id="<2@example.com>", subject="Second", sender="b@example.com", body=""),
     ]
     service, _, exporter = _make_service(mails)
 

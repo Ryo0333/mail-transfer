@@ -6,12 +6,15 @@ from src.domain.models.mail import Mail
 from src.infrastructure.gmail.gmail import GmailClient
 
 
-def _make_msg(subject: str, from_: str, text: str = "", html: str = "") -> MagicMock:
+def _make_msg(
+    subject: str, from_: str, text: str = "", html: str = "", message_id: str = "<test@example.com>"
+) -> MagicMock:
     msg = MagicMock()
     msg.subject = subject
     msg.from_ = from_
     msg.text = text
     msg.html = html
+    msg.headers = {"message-id": (message_id,)}
     return msg
 
 
@@ -28,9 +31,10 @@ def gmail_client(mock_mailbox: MagicMock) -> GmailClient:
 
 
 class TestToMail:
-    def test_maps_subject_and_sender(self, gmail_client: GmailClient) -> None:
-        msg = _make_msg("Test Subject", "from@example.com", text="Body")
+    def test_maps_message_id_subject_and_sender(self, gmail_client: GmailClient) -> None:
+        msg = _make_msg("Test Subject", "from@example.com", text="Body", message_id="<abc@example.com>")
         result = gmail_client._to_mail(msg)
+        assert result.message_id == "<abc@example.com>"
         assert result.subject == "Test Subject"
         assert result.sender == "from@example.com"
 

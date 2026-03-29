@@ -13,6 +13,7 @@ NOTION_VERSION = "2025-09-03"
 NOTION_RICH_TEXT_LIMIT = 2000
 
 TITLE_PROPERTY_NAME = "Name"
+MESSAGE_ID_PROPERTY_NAME = "Message ID"
 
 
 class NotionClient:
@@ -27,13 +28,14 @@ class NotionClient:
         )
 
     def export(self, mail: Mail) -> None:
-        if self._title_exists(mail.subject):
-            logger.info("Skipping: page with title '%s' already exists in Notion DB", mail.subject)
+        if self._message_id_exists(mail.message_id):
+            logger.info("Skipping: page with message_id '%s' already exists in Notion DB", mail.message_id)
             return
         notion_data = {
             "parent": {"type": "data_source_id", "data_source_id": self.data_source_id},
             "properties": {
                 TITLE_PROPERTY_NAME: {"title": [{"text": {"content": mail.subject}}]},
+                MESSAGE_ID_PROPERTY_NAME: {"rich_text": [{"text": {"content": mail.message_id}}]},
             },
             "children": self._split_into_paragraph_blocks(mail.body),
         }
@@ -44,12 +46,12 @@ class NotionClient:
         logger.error("Notion API error: %s\nResponse body: %s", res.status_code, res.text)
         res.raise_for_status()
 
-    def _title_exists(self, title: str) -> bool:
+    def _message_id_exists(self, message_id: str) -> bool:
         url = URL(f"https://api.notion.com/v1/data_sources/{self.data_source_id}/query")
         data = {
             "filter": {
-                "property": TITLE_PROPERTY_NAME,
-                "title": {"equals": title},
+                "property": MESSAGE_ID_PROPERTY_NAME,
+                "rich_text": {"equals": message_id},
             }
         }
         with httpx.Client(headers=self.headers, timeout=20.0) as client:
