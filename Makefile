@@ -1,5 +1,8 @@
 COMPOSE_RUN := docker compose run --rm mail-transfer
 
+install:
+	$(COMPOSE_RUN) uv sync
+
 test:
 	$(COMPOSE_RUN) uv run pytest
 
