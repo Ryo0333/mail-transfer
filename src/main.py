@@ -14,12 +14,16 @@ def main() -> None:
         from_email=settings.from_email,
         subject_prefix=settings.subject_prefix,
     )
-    notion_provider = NotionProvider(
-        api_key=settings.notion_api_key,
-        data_source_id=settings.notion_data_source_id,
-    )
     with gmail_client as gmail:
-        injector = Injector([GmailProvider(gmail), notion_provider])
+        injector = Injector(
+            [
+                GmailProvider(gmail),
+                NotionProvider(
+                    api_key=settings.notion_api_key,
+                    data_source_id=settings.notion_data_source_id,
+                ),
+            ]
+        )
         injector.get(MailTransferService).execute()
 
 
