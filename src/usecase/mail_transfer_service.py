@@ -21,5 +21,4 @@ class MailTransferService:
         for mail in mails:
             logger.info("【件名】: %s", mail.subject)
             logger.info("【送信元】: %s", mail.sender)
-            logger.debug("【本文】:\n%s", mail.body)
             self.exporter.export(mail)
