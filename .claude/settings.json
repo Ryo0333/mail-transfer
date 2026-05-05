@@ -1,0 +1,60 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(make:*)",
+      "Bash(/usr/bin/make oapigen)",
+      "Bash(/usr/bin/make lint)",
+      "Bash(/usr/bin/make format)",
+      "Bash(/usr/bin/make test)",
+      "Bash(mkdir:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run orval:*)",
+      "Bash(/usr/bin/make migrate)",
+      "Bash(/usr/bin/make revision)",
+      "Bash(ls:*)",
+      "Bash(sed:*)",
+      "Bash(npm run lint)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr diff:*)",
+      "Bash(git diff)",
+      "Bash(awk:*)",
+      "Bash(rg:*)",
+      "Bash(mv:*)"
+    ],
+    "deny": [
+    "Bash(git add:*)",
+    "Bash(git commit:*)",
+    "Bash(git push:*)",
+    "Bash(git reset:*)",
+    "Bash(git rebase:*)",
+    "Bash(rm -rf /*)",
+    "Bash(chmod 777 *)"
+  ]
+  },
+  "hooks": {
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "osascript -e 'display notification \"Claude Codeが許可を求めています\" with title \"Claude Code\" sound name \"default\"'",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "osascript -e 'display notification \"処理が完了しました\" with title \"Claude Code\" sound name \"Glass\"'",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
